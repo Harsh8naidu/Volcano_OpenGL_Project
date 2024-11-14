@@ -5,11 +5,18 @@
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 #include <GL/GL.h>
+#include "Shader.h"
 
 #undef main
 
 SDL_Window* window;
 SDL_GLContext context;
+
+float vertices[] = {
+	-1.f, -1.f, 0.f,
+	 1.f, -1.f, 0.f,
+	 0.f,  1.f, 0.f
+};
 
 int main()
 {
@@ -49,6 +56,77 @@ int main()
 		return 1;
 	}
 
+	unsigned int vs;
+	unsigned int fs;
+	unsigned int shader;
+	
+	// Load shader sources
+	std::string vertexShaderSource = LoadShaderSource("vertex_shader.glsl");
+	std::string fragmentShaderSource = LoadShaderSource("fragment_shader.glsl");
+
+	// Convert to C-style string for OpenGL
+	const char* vsSourceCStr = vertexShaderSource.c_str();
+	const char* fsSourceCStr = fragmentShaderSource.c_str();
+
+	// Create and compile the vertex shader
+	vs = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vs, 1, &vsSourceCStr, NULL);
+	glCompileShader(vs);
+
+	// Check for compilation errors (optional)
+	int success;
+	glGetShaderiv(vs, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char infoLog[512];
+		glGetShaderInfoLog(vs, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
+	// Create and compile the fragment shader
+	fs = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fs, 1, &fsSourceCStr, NULL);
+	glCompileShader(fs);
+
+	// Check for compilation errors (optional)
+	glGetShaderiv(fs, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		char infoLog[512];
+		glGetShaderInfoLog(fs, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+	}
+
+	// Link shaders into a shader program
+	shader = glCreateProgram();
+	glAttachShader(shader, vs);
+	glAttachShader(shader, fs);
+	glLinkProgram(shader);
+
+	// Check for linking errors (optional)
+	glGetProgramiv(shader, GL_LINK_STATUS, &success);
+	if (!success) {
+		char infoLog[512];
+		glGetProgramInfoLog(shader, 512, NULL, infoLog);
+		std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+	}
+
+	// Clean up shaders (they are linked into the program now and can be deleted)
+	glDeleteShader(vs);
+	glDeleteShader(fs);
+	
+	unsigned int VAO;
+
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
+	unsigned int VBO;
+
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
 	bool stopped = false;
 
 	while (!stopped)
@@ -65,6 +143,10 @@ int main()
 		// render the scene
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		glUseProgram(shader);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		SDL_GL_SwapWindow(window);
 	}

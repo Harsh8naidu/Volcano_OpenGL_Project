@@ -127,7 +127,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Volcano_OpenGL_Project.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="fragment_shader.glsl" />
+    <None Include="vertex_shader.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Shader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
