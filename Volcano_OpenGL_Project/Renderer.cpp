@@ -1,20 +1,15 @@
-// Renderer.cpp
-#include "Renderer.h"
 #include <iostream>
-#include <fstream>
-#include <sstream>
+#include "Renderer.h"
 
+float angle = 0.0f;
 
-
-
-Renderer::Renderer() : window(nullptr), context(nullptr), VAO(0), VBO(0) {}
+Renderer::Renderer() : window(nullptr), context(nullptr), VAO(0), VBO(0), angle(0.0f) {}
 
 Renderer::~Renderer() {
     Cleanup();
 }
 
 bool Renderer::Initialize() {
-    // SDL and OpenGL setup
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cout << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
         return false;
@@ -22,17 +17,16 @@ bool Renderer::Initialize() {
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); // Set to Core Profile
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     window = SDL_CreateWindow("Volcano OpenGL Project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL);
-
     if (!window) {
         std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
         return false;
     }
 
     context = SDL_GL_CreateContext(window);
-
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     if (!context) {
         SDL_DestroyWindow(window);
         std::cout << "OpenGL context could not be created! SDL_Error: " << SDL_GetError() << std::endl;
@@ -44,50 +38,74 @@ bool Renderer::Initialize() {
         return false;
     }
 
-    // Initialize shaders
+    // Load shaders
     if (!shader.Load("vertex_shader.glsl", "fragment_shader.glsl")) {
         std::cerr << "Failed to load shaders!" << std::endl;
         return false;
     }
 
-    // Get uniform locations
+    // Get uniform locations from the shader
     modelLoc = glGetUniformLocation(shader.GetProgram(), "modelMat");
     viewLoc = glGetUniformLocation(shader.GetProgram(), "viewMat");
     projLoc = glGetUniformLocation(shader.GetProgram(), "projMat");
 
-    // Set up matrices
     SetUpMatrices();
 
-    // Vertex setup
-    float vertices[] = {
-        -1.f, -1.f, 0.f,
-         1.f, -1.f, 0.f,
-         0.f,  1.f, 0.f
-    };
+    // Load and bind model data
+    if (!LoadModelData()) {
+        std::cerr << "Failed to load model data!" << std::endl;
+        return false;
+    }
+    else {
+        std::cout << "Model data loaded successfully!" << std::endl;
+    }
+
+    glEnable(GL_DEPTH_TEST);
+    return true;
+}
+
+bool Renderer::LoadModelData() {
+    if (!volcano_model.LoadOBJ("volcano_model.obj")) {
+        std::cerr << "Failed to load OBJ file!" << std::endl;
+        return false;
+    }
+
+    vertices = volcano_model.vertices;
+    indices = volcano_model.indices; // Ensure indices are stored here
+    vertexCount = indices.size();
+
+    if (vertices.empty() || indices.empty()) {
+        std::cerr << "Failed to load vertex data from model!" << std::endl;
+        return false;
+    }
 
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glGenBuffers(1, &EBO); // Element Buffer for indices
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texCoord));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(2);
 
-    // Enable depth testing
-    glEnable(GL_DEPTH_TEST);
-
+    glBindVertexArray(0); // Unbind VAO
     return true;
 }
 
 void Renderer::SetUpMatrices() {
-    // Initialize matrices
-	float ar = 500.0f / 400.0f; // Aspect ratio
+    float ar = 800.0f / 600.0f; // Aspect ratio
     modelMat = glm::mat4(1.0f); // Identity matrix for model
-	viewMat = glm::mat4(1.0f); // Identity matrix for view
-	viewMat = glm::translate(viewMat, glm::vec3(0.0f, 0.0f, -5.0f)); // Move the camera back
-    projMat = glm::perspective(glm::radians(50.0f), ar, 0.1f, 100.0f); // Perspective projection
+    viewMat = glm::lookAt(glm::vec3(40.0f, 20.0f, -55.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 1.f, 0.f));
+    projMat = glm::perspective(glm::radians(50.0f), ar, 0.1f, 5000.0f); // Perspective projection
 
     // Send matrices to the shader
     shader.Use();
@@ -97,19 +115,13 @@ void Renderer::SetUpMatrices() {
 }
 
 void Renderer::Render() {
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    shader.Use();
 
-	shader.Use();
-
-    // Update matrices if needed (e.g., for animation)
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &modelMat[0][0]);
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &viewMat[0][0]);
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projMat[0][0]);
 
     glBindVertexArray(VAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-
+    glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0); // Use glDrawElements with indices
     SDL_GL_SwapWindow(window);
 }
 

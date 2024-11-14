@@ -1,15 +1,12 @@
-// Renderer.h
-#pragma once
+#ifndef RENDERER_H
+#define RENDERER_H
 
-#include <string>
-#include <GL/glew.h>
 #include <SDL2/SDL.h>
-#include "Shader.h"
-
-#include <glm/ext.hpp>
+#include <GL/glew.h>
 #include <glm/glm.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include "Model_Loader.h"
+#include "Shader.h"
 
 class Renderer {
 public:
@@ -23,20 +20,22 @@ public:
 private:
     SDL_Window* window;
     SDL_GLContext context;
-    
+    GLuint VAO, VBO, EBO;
+
+    Model_Loader volcano_model;
     Shader shader;
-    GLuint VAO, VBO;
 
-    // Transformation matrices
-    glm::mat4 modelMat;
-    glm::mat4 viewMat;
-    glm::mat4 projMat;
+    GLint modelLoc, viewLoc, projLoc;
+    glm::mat4 modelMat, viewMat, projMat;
 
-    // Uniform locations
-    GLint modelLoc;
-    GLint viewLoc;
-    GLint projLoc;
+    std::vector<Vertex> vertices;  // Updated to use Vertex structure from ModelLoader
+	std::vector<unsigned int> indices;
+    size_t vertexCount;
 
-	void SetUpMatrices();
-    
+    float angle;
+
+    void SetUpMatrices();
+    bool LoadModelData();
 };
+
+#endif // RENDERER_H
