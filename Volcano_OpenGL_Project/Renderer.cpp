@@ -4,6 +4,9 @@
 #include <fstream>
 #include <sstream>
 
+
+
+
 Renderer::Renderer() : window(nullptr), context(nullptr), VAO(0), VBO(0) {}
 
 Renderer::~Renderer() {
@@ -19,6 +22,7 @@ bool Renderer::Initialize() {
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); // Set to Core Profile
 
     window = SDL_CreateWindow("Volcano OpenGL Project", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_OPENGL);
 
@@ -46,6 +50,14 @@ bool Renderer::Initialize() {
         return false;
     }
 
+    // Get uniform locations
+    modelLoc = glGetUniformLocation(shader.GetProgram(), "modelMat");
+    viewLoc = glGetUniformLocation(shader.GetProgram(), "viewMat");
+    projLoc = glGetUniformLocation(shader.GetProgram(), "projMat");
+
+    // Set up matrices
+    SetUpMatrices();
+
     // Vertex setup
     float vertices[] = {
         -1.f, -1.f, 0.f,
@@ -63,14 +75,38 @@ bool Renderer::Initialize() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
+
     return true;
+}
+
+void Renderer::SetUpMatrices() {
+    // Initialize matrices
+	float ar = 500.0f / 400.0f; // Aspect ratio
+    modelMat = glm::mat4(1.0f); // Identity matrix for model
+	viewMat = glm::mat4(1.0f); // Identity matrix for view
+	viewMat = glm::translate(viewMat, glm::vec3(0.0f, 0.0f, -5.0f)); // Move the camera back
+    projMat = glm::perspective(glm::radians(50.0f), ar, 0.1f, 100.0f); // Perspective projection
+
+    // Send matrices to the shader
+    shader.Use();
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &modelMat[0][0]);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &viewMat[0][0]);
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projMat[0][0]);
 }
 
 void Renderer::Render() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	shader.Use();
+
+    // Update matrices if needed (e.g., for animation)
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &modelMat[0][0]);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &viewMat[0][0]);
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projMat[0][0]);
+
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
