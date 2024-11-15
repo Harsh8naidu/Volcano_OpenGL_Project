@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 
+#include "Renderer.h"
+
 Shader::Shader() : program(0) {}
 
 Shader::~Shader() {
@@ -32,6 +34,18 @@ bool Shader::Load(const std::string& vertexPath, const std::string& fragmentPath
     glDeleteShader(fragmentShader);
 
     return true;
+}
+
+void Shader::SetProjectionMatrix(const glm::mat4& projMat) {
+	glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, GL_FALSE, glm::value_ptr(projMat));
+}
+
+void Shader::SetViewMatrix(const glm::mat4& viewMat) {
+	glUniformMatrix4fv(glGetUniformLocation(program, "viewMat"), 1, GL_FALSE, glm::value_ptr(viewMat));
+}
+
+void Shader::SetModelMatrix(const glm::mat4& modelMat) {
+	glUniformMatrix4fv(glGetUniformLocation(program, "modelMat"), 1, GL_FALSE, glm::value_ptr(modelMat));
 }
 
 void Shader::Use() const {

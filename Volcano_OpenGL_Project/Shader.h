@@ -3,6 +3,7 @@
 
 #include <string>
 #include <GL/glew.h>
+#include <glm/fwd.hpp>
 
 class Shader {
 public:
@@ -12,6 +13,9 @@ public:
     bool Load(const std::string& vertexPath, const std::string& fragmentPath);
     void Use() const;
     GLuint GetProgram() const;
+    void SetProjectionMatrix(const glm::mat4& projection);
+    void SetViewMatrix(const glm::mat4& view);
+    void SetModelMatrix(const glm::mat4& model);
 
 private:
     GLuint program;

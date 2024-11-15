@@ -45,9 +45,9 @@ bool Renderer::Initialize() {
     }
 
     // Get uniform locations from the shader
-    modelLoc = glGetUniformLocation(shader.GetProgram(), "modelMat");
+    /*modelLoc = glGetUniformLocation(shader.GetProgram(), "modelMat");
     viewLoc = glGetUniformLocation(shader.GetProgram(), "viewMat");
-    projLoc = glGetUniformLocation(shader.GetProgram(), "projMat");
+    projLoc = glGetUniformLocation(shader.GetProgram(), "projMat");*/
 
     SetUpMatrices();
 
@@ -148,14 +148,14 @@ void Renderer::SetUpMatrices() {
     //viewMat = glm::lookAt(glm::vec3(40.0f, 20.0f, -55.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 1.f, 0.f));
     projMat = glm::perspective(glm::radians(50.0f), ar, 0.1f, 5000.0f); // Perspective projection
 
-    camera.MoveTo(glm::vec3(40.0f, 20.0f, -55.0f));
+    camera.MoveTo(glm::vec3(-10.0f, 0.0f, -15.0f));
 	camera.TurnTo(glm::vec3(0.f, 0.f, 0.f));
 
     // Send matrices to the shader
     shader.Use();
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &modelMat[0][0]);
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &viewMat[0][0]);
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &projMat[0][0]);
+	shader.SetModelMatrix(modelMat);
+	shader.SetViewMatrix(camera.GetViewMatrix());
+	shader.SetProjectionMatrix(projMat);
 }
 
 void Renderer::Render() {
