@@ -1,9 +1,9 @@
 #include <iostream>
 #include "Renderer.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
-float angle = 0.0f;
-
-Renderer::Renderer() : window(nullptr), context(nullptr), VAO(0), VBO(0), angle(0.0f) {}
+Renderer::Renderer() : window(nullptr), context(nullptr), VAO(0), VBO(0) {}
 
 Renderer::~Renderer() {
     Cleanup();
@@ -50,6 +50,15 @@ bool Renderer::Initialize() {
     projLoc = glGetUniformLocation(shader.GetProgram(), "projMat");
 
     SetUpMatrices();
+
+    // Load texture
+    /*if (!LoadTexture("volcano_texture.png")) {
+        std::cerr << "Failed to load texture!" << std::endl;
+        return false;
+    }
+    else {
+        std::cout << "Texture loaded successfully!" << std::endl;
+    }*/
 
     // Load and bind model data
     if (!LoadModelData()) {
@@ -101,11 +110,46 @@ bool Renderer::LoadModelData() {
     return true;
 }
 
+bool Renderer::LoadTexture(const std::string& filePath) {
+    int width, height, channels;
+    unsigned char* image = stbi_load(filePath.c_str(), &width, &height, &channels, 0);
+
+    if (!image) {
+        std::cerr << "Failed to load texture: " << filePath << std::endl;
+        return false;
+    }
+
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    // Load texture into OpenGL
+    if (channels == 3)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+    else if (channels == 4)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    stbi_image_free(image); // Free the image data after loading
+
+    return true;
+}
+
+
 void Renderer::SetUpMatrices() {
     float ar = 800.0f / 600.0f; // Aspect ratio
     modelMat = glm::mat4(1.0f); // Identity matrix for model
-    viewMat = glm::lookAt(glm::vec3(40.0f, 20.0f, -55.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 1.f, 0.f));
+    //viewMat = glm::lookAt(glm::vec3(40.0f, 20.0f, -55.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.f, 1.f, 0.f));
     projMat = glm::perspective(glm::radians(50.0f), ar, 0.1f, 5000.0f); // Perspective projection
+
+    camera.MoveTo(glm::vec3(40.0f, 20.0f, -55.0f));
+	camera.TurnTo(glm::vec3(0.f, 0.f, 0.f));
 
     // Send matrices to the shader
     shader.Use();

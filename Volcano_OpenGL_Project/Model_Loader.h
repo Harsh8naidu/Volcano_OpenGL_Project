@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <glm/glm.hpp> // GLM library for vector types
+#include <string>
+#include <GL/glew.h>
 
 // Structure to hold vertex data
 struct Vertex {
@@ -25,6 +27,11 @@ public:
 
     // Loads the OBJ file from the given file path
     bool LoadOBJ(const std::string& filePath);
+
+private:
+    GLuint textureID;
+    GLuint textureLocation;
+
 };
 
 #endif // MODEL_LOADER_H

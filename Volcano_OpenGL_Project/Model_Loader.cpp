@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#define STB_IMAGE_IMPLEMENTATION
 
 bool Model_Loader::LoadOBJ(const std::string& filePath) {
     std::ifstream file(filePath);

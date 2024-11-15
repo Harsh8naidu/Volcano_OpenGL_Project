@@ -7,6 +7,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "Model_Loader.h"
 #include "Shader.h"
+#include <string>
+#include "Camera.h"
 
 class Renderer {
 public:
@@ -36,6 +38,12 @@ private:
 
     void SetUpMatrices();
     bool LoadModelData();
+    bool LoadTexture(const std::string& filePath);
+
+    GLuint textureID;
+    GLuint textureLocation;
+
+	Camera camera;
 };
 
 #endif // RENDERER_H
